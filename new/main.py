@@ -34,9 +34,22 @@ def main(args):
     robot.grasp(grasp_position, 4*np.pi/8, limits)
     robot.push(grasp_position, 11*np.pi/8, limits)
     robot.move_to(grasp_position, 11*np.pi/8)
-    robot.add_instruction(robot.grasp, grasp_position, 4*np.pi/8, limits)
+    action_dict = {
+        "grasp": robot.grasp,
+        "push":  robot.push,
+        "move":  robot.move_to
+    }
+    a = robot.grasp
+    robot.add_instruction(a, grasp_position, 4*np.pi/8, limits)
     robot.execute()
-
+    while True:
+        command = input()
+        if command in action_dict:
+            action = action_dict.get(command)
+            robot.add_instruction(action, grasp_position, 4*np.pi/8, limits)
+            robot.execute()
+        else:
+            print("error")
 if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser(description='Train robotic agents to learn how to plan complementary pushing and grasping actions for manipulation with deep reinforcement learning in PyTorch.')
