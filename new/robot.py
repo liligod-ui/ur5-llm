@@ -958,6 +958,10 @@ class Robot(object):
     def add_instruction(self, func, *args):
         """ 动态添加指令 """
         self.instructions.append((func, args))
+
+    def clear_instruction(self):
+        self.instructions = []
+
     def execute(self):
         """ 执行所有指令并确保资源释放 """
         for func, args in self.instructions:

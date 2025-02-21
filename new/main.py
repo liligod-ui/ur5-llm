@@ -39,14 +39,16 @@ def main(args):
         "push":  robot.push,
         "move":  robot.move_to
     }
-    a = robot.grasp
-    robot.add_instruction(a, grasp_position, 4*np.pi/8, limits)
-    robot.execute()
+    action_position = np.asarray([[0], [0], [0]])
+    action_rotation_angle = 0
     while True:
         command = input()
+        angel = float(input())
         if command in action_dict:
             action = action_dict.get(command)
-            robot.add_instruction(action, grasp_position, 4*np.pi/8, limits)
+            robot.clear_instruction()
+            action_rotation_angle = angel/180 * np.pi
+            robot.add_instruction(action, grasp_position, action_rotation_angle, limits)
             robot.execute()
         else:
             print("error")
