@@ -1,5 +1,4 @@
 from robot import Robot
-from instruction import *
 import argparse
 import time
 import os
@@ -22,36 +21,39 @@ def main(args):
     max_test_trials = args.max_test_trials  # Maximum number of test runs per case/scenario
     test_preset_cases = args.test_preset_cases
     test_preset_file = os.path.abspath(args.test_preset_file) if test_preset_cases else None
+
     robot = Robot(is_sim, obj_mesh_dir, num_obj, workspace_limits,
                   tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
                   is_testing, test_preset_cases, test_preset_file)
-    grasp_position = np.sum(workspace_limits, axis=1)/2
-    # grasp_position[2] = -0.25
-    grasp_position[0] = 72 * 0.002 + workspace_limits[0][0]
-    grasp_position[1] = 105 * 0.002 + workspace_limits[1][0]
-    grasp_position[2] = workspace_limits[2][0]
-    limits = workspace_limits
-    robot.grasp(grasp_position, 4*np.pi/8, limits)
-    robot.push(grasp_position, 11*np.pi/8, limits)
-    robot.move_to(grasp_position, 11*np.pi/8)
     action_dict = {
-        "grasp": robot.grasp,
-        "push":  robot.push,
-        "move":  robot.move_to
+        "grasp":   robot.grasp,
+        "push":    robot.push,
+        "move":    robot.move_to,
+        "open":    robot.open_gripper,
+        "close":   robot.close_gripper
     }
-    action_position = np.asarray([[0], [0], [0]])
-    action_rotation_angle = 0
+
     while True:
         command = input()
         angel = float(input())
+        x, y, z =map(float, input().split())
+        action_position = np.asarray([[x], [y], [z]])
         if command in action_dict:
-            action = action_dict.get(command)
             robot.clear_instruction()
+            action = action_dict.get(command)
             action_rotation_angle = angel/180 * np.pi
-            robot.add_instruction(action, grasp_position, action_rotation_angle, limits)
+            if action == robot.grasp or action == robot.push:
+                robot.add_instruction(action, action_position, action_rotation_angle, workspace_limits)
+            if action == robot.open_gripper or action == robot.close_gripper:
+                robot.add_instruction(action)
+            else:
+                robot.add_instruction(action, action_position, action_rotation_angle)
             robot.execute()
+            robot.check_sim()
         else:
-            print("error")
+            print("The command is not in the library")
+
+
 if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser(description='Train robotic agents to learn how to plan complementary pushing and grasping actions for manipulation with deep reinforcement learning in PyTorch.')
@@ -72,13 +74,4 @@ if __name__ == '__main__':
     parser.add_argument('--test_preset_cases', dest='test_preset_cases', action='store_true', default=False)
     parser.add_argument('--test_preset_file', dest='test_preset_file', action='store', default='test-10-obj-01.txt')
     args = parser.parse_args()
-    # 创建控制器实例
-    controller = RobotArmController()
-    # 动态添加指令（可从文件/网络动态读取）
-    controller.add_instruction(move_to, 10, 20, 30)
-    controller.add_instruction(grab)
-    controller.add_instruction(move_to, 0, 0, 0)
-    controller.add_instruction(release)
-    # 执行指令队列
-    controller.execute()
     main(args)
