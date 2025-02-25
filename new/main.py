@@ -1,8 +1,11 @@
 from robot import Robot
+from PIL import Image
+from logger import Logger
 import argparse
 import time
 import os
 import numpy as np
+import utils
 def main(args):
     # --------------- Setup options ---------------
     is_sim = args.is_sim # Run in simulation?
@@ -21,6 +24,11 @@ def main(args):
     max_test_trials = args.max_test_trials  # Maximum number of test runs per case/scenario
     test_preset_cases = args.test_preset_cases
     test_preset_file = os.path.abspath(args.test_preset_file) if test_preset_cases else None
+    heightmap_resolution = args.heightmap_resolution # Meters per pixel of heightmap
+    # ------ logging options ------
+    continue_logging = args.continue_logging # Continue logging from previous session
+    logging_directory = os.path.abspath(args.logging_directory) if continue_logging else os.path.abspath('logs')
+    logger = Logger(continue_logging, logging_directory)
 
     robot = Robot(is_sim, obj_mesh_dir, num_obj, workspace_limits,
                   tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
@@ -32,7 +40,19 @@ def main(args):
         "open":    robot.open_gripper,
         "close":   robot.close_gripper
     }
+    # Get camera data
+    color_img, depth_img = robot.get_camera_data()
+    depth_img = depth_img * robot.cam_depth_scale  # Apply depth scale from calibration
 
+    # Get heightmap from RGB-D image (by re-projecting 3D point cloud)
+    color_heightmap, depth_heightmap = utils.get_heightmap(color_img, depth_img, robot.cam_intrinsics, robot.cam_pose,
+                                                           workspace_limits, heightmap_resolution)
+    valid_depth_heightmap = depth_heightmap.copy()
+    valid_depth_heightmap[np.isnan(valid_depth_heightmap)] = 0
+
+    # Save RGB-D images and RGB-D heightmaps
+    logger.save_images(1, color_img, depth_img, '0')
+    logger.save_heightmaps(1, color_heightmap, valid_depth_heightmap, '0')
     while True:
         command = input()
         angel = float(input())
@@ -68,10 +88,14 @@ if __name__ == '__main__':
     parser.add_argument('--rtc_port', dest='rtc_port', type=int, action='store', default=30003,                           help='port to robot arm as real-time client (UR5)')
     parser.add_argument('--heightmap_resolution', dest='heightmap_resolution', type=float, action='store', default=0.002, help='meters per pixel of heightmap')
     parser.add_argument('--random_seed', dest='random_seed', type=int, action='store', default=1234,                      help='random seed for simulation and neural net initialization')
+
     # -------------- Testing options --------------
     parser.add_argument('--is_testing', dest='is_testing', action='store_true', default=False)
     parser.add_argument('--max_test_trials', dest='max_test_trials', type=int, action='store', default=30,                help='maximum number of test runs per case/scenario')
     parser.add_argument('--test_preset_cases', dest='test_preset_cases', action='store_true', default=False)
     parser.add_argument('--test_preset_file', dest='test_preset_file', action='store', default='test-10-obj-01.txt')
+    # ------logging options ------
+    parser.add_argument('--continue_logging', dest='continue_logging', action='store_true', default=False,                help='continue logging from previous session?')
+    parser.add_argument('--logging_directory', dest='logging_directory', action='store')
     args = parser.parse_args()
     main(args)
