@@ -422,7 +422,7 @@ class Robot(object):
                 gripper_fully_closed = True
             else:
                 time.sleep(1.5)
-                gripper_fully_closed =  self.check_grasp()
+                gripper_fully_closed = self.check_grasp()
 
         return gripper_fully_closed
 
@@ -452,6 +452,8 @@ class Robot(object):
 
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+        state_data = self.tcp_socket.recv(2048)
+        state_data = self.tcp_socket.recv(2048)
         state_data = self.tcp_socket.recv(2048)
         self.tcp_socket.close()
         return state_data
@@ -568,6 +570,8 @@ class Robot(object):
         self.tcp_socket.send(str.encode(tcp_command))
 
         # Block until robot reaches home state
+        state_data = self.tcp_socket.recv(2048)
+        state_data = self.tcp_socket.recv(2048)
         state_data = self.tcp_socket.recv(2048)
         actual_joint_positions = self.parse_tcp_state_data(state_data, 'joint_data')
         while not all([np.abs(actual_joint_positions[j] - joint_configuration[j]) < self.joint_tolerance for j in range(6)]):
