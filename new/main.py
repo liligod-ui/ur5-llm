@@ -1,11 +1,13 @@
 from robot import Robot
 from PIL import Image
 from logger import Logger
+from real.camera import RealSenseCamera
 import argparse
 import time
 import os
 import numpy as np
 import utils
+
 def main(args):
     # --------------- Setup options ---------------
     is_sim = args.is_sim # Run in simulation?
@@ -15,6 +17,7 @@ def main(args):
     tcp_port = args.tcp_port if not is_sim else None
     rtc_host_ip = args.rtc_host_ip if not is_sim else None # IP and port to robot arm as real-time client (UR5)
     rtc_port = args.rtc_port if not is_sim else None
+    device_id = args.device_id
     if is_sim:
         workspace_limits = np.asarray([[-0.724, -0.276], [-0.224, 0.224], [-0.0001, 0.4]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     else:
@@ -32,7 +35,7 @@ def main(args):
 
     robot = Robot(is_sim, obj_mesh_dir, num_obj, workspace_limits,
                   tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-                  is_testing, test_preset_cases, test_preset_file)
+                  is_testing, test_preset_cases, test_preset_file, device_id)
     action_dict = {
         "grasp":   robot.grasp,
         "push":    robot.push,
@@ -66,8 +69,10 @@ def main(args):
                 robot.add_instruction(action, action_position, action_rotation_angle, workspace_limits)
             if action == robot.open_gripper or action == robot.close_gripper:
                 robot.add_instruction(action)
-            else:
+                print('Executing: '+command)
+            if action == robot.move_to:
                 robot.add_instruction(action, action_position, action_rotation_angle)
+                print('Executing: move to (%f, %f, %f)' % (action_position[0], action_position[1], action_position[2]))
             robot.execute()
             robot.check_sim()
         else:
@@ -88,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('--rtc_port', dest='rtc_port', type=int, action='store', default=30003,                           help='port to robot arm as real-time client (UR5)')
     parser.add_argument('--heightmap_resolution', dest='heightmap_resolution', type=float, action='store', default=0.002, help='meters per pixel of heightmap')
     parser.add_argument('--random_seed', dest='random_seed', type=int, action='store', default=1234,                      help='random seed for simulation and neural net initialization')
-
+    parser.add_argument('--device_id', dest='device_id', type=int, action='store', default=141722072133,                  help='realsense device id')
     # -------------- Testing options --------------
     parser.add_argument('--is_testing', dest='is_testing', action='store_true', default=False)
     parser.add_argument('--max_test_trials', dest='max_test_trials', type=int, action='store', default=30,                help='maximum number of test runs per case/scenario')

@@ -10,11 +10,12 @@ from simulation import vrep
 class Robot(object):
     def __init__(self, is_sim, obj_mesh_dir, num_obj, workspace_limits,
                  tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-                 is_testing, test_preset_cases, test_preset_file):
+                 is_testing, test_preset_cases, test_preset_file, device_id):
 
         self.is_sim = is_sim
         self.workspace_limits = workspace_limits
         self.instructions = []  # 存储指令队列
+        self.device_id = device_id
         # If in simulation...
         if self.is_sim:
 
@@ -125,8 +126,9 @@ class Robot(object):
             self.go_home()
 
             # Fetch RGB-D data from RealSense camera
-            from real.camera import Camera
-            self.camera = Camera()
+            from real.camera import RealSenseCamera
+            self.camera = RealSenseCamera(self.device_id)
+            self.camera.connect()
             self.cam_intrinsics = self.camera.intrinsics
 
             # Load camera pose (from running calibrate.py), intrinsics and depth scale
@@ -325,7 +327,10 @@ class Robot(object):
 
         else:
             # Get color and depth image from ROS service
-            color_img, depth_img = self.camera.get_data()
+            image = self.camera.get_image_bundle()
+            color_img = image['rgb']
+            depth_img = image['aligned_depth']
+            #color_img, depth_img = self.camera.get_data()
             # color_img = self.camera.color_data.copy()
             # depth_img = self.camera.depth_data.copy()
 
@@ -484,6 +489,8 @@ class Robot(object):
             self.tcp_socket.send(str.encode(tcp_command))
 
             # Block until robot reaches target tool position
+            tcp_state_data = self.tcp_socket.recv(2048)
+            tcp_state_data = self.tcp_socket.recv(2048)
             tcp_state_data = self.tcp_socket.recv(2048)
             actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
             while not all([np.abs(actual_tool_pose[j] - tool_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):

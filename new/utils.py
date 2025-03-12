@@ -2,11 +2,6 @@ import struct
 import math
 import numpy as np
 import cv2
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-
 
 def get_pointcloud(color_img, depth_img, camera_intrinsics):
 
@@ -101,36 +96,6 @@ def pcwrite(xyz_pts, filename, rgb_pts=None):
     for i in range(xyz_pts.shape[0]):
         pc_file.write(bytearray(struct.pack("fffccc",xyz_pts[i][0],xyz_pts[i][1],xyz_pts[i][2],rgb_pts[i][0].tostring(),rgb_pts[i][1].tostring(),rgb_pts[i][2].tostring())))
     pc_file.close()
-
-
-def get_affordance_vis(grasp_affordances, input_images, num_rotations, best_pix_ind):
-    vis = None
-    for vis_row in range(num_rotations/4):
-        tmp_row_vis = None
-        for vis_col in range(4):
-            rotate_idx = vis_row*4+vis_col
-            affordance_vis = grasp_affordances[rotate_idx,:,:]
-            affordance_vis[affordance_vis < 0] = 0 # assume probability
-            # affordance_vis = np.divide(affordance_vis, np.max(affordance_vis))
-            affordance_vis[affordance_vis > 1] = 1 # assume probability
-            affordance_vis.shape = (grasp_affordances.shape[1], grasp_affordances.shape[2])
-            affordance_vis = cv2.applyColorMap((affordance_vis*255).astype(np.uint8), cv2.COLORMAP_JET)
-            input_image_vis = (input_images[rotate_idx,:,:,:]*255).astype(np.uint8)
-            input_image_vis = cv2.resize(input_image_vis, (0,0), fx=0.5, fy=0.5, interpolation=cv2.INTER_NEAREST)
-            affordance_vis = (0.5*cv2.cvtColor(input_image_vis, cv2.COLOR_RGB2BGR) + 0.5*affordance_vis).astype(np.uint8)
-            if rotate_idx == best_pix_ind[0]:
-                affordance_vis = cv2.circle(affordance_vis, (int(best_pix_ind[2]), int(best_pix_ind[1])), 7, (0,0,255), 2)
-            if tmp_row_vis is None:
-                tmp_row_vis = affordance_vis
-            else:
-                tmp_row_vis = np.concatenate((tmp_row_vis,affordance_vis), axis=1)
-        if vis is None:
-            vis = tmp_row_vis
-        else:
-            vis = np.concatenate((vis,tmp_row_vis), axis=0)
-
-    return vis
-
 
 def get_difference(color_heightmap, color_space, bg_color_heightmap):
 
@@ -298,16 +263,6 @@ def rotm2angle(R):
     z = (R[1][0] - R[0][1])/s
     return [angle,x,y,z]
 
-
-# Cross entropy loss for 2D outputs
-class CrossEntropyLoss2d(nn.Module):
-
-    def __init__(self, weight=None, size_average=True):
-        super(CrossEntropyLoss2d, self).__init__()
-        self.nll_loss = nn.NLLLoss2d(weight, size_average)
-
-    def forward(self, inputs, targets):
-        return self.nll_loss(F.log_softmax(inputs, dim=1), targets)
 
 
 
