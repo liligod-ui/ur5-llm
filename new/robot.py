@@ -123,13 +123,14 @@ class Robot(object):
 
             # Move robot to home pose
             self.close_gripper()
-            self.go_home()
+            #self.go_home()
 
             # Fetch RGB-D data from RealSense camera
             from real.camera import RealSenseCamera
             self.camera = RealSenseCamera(self.device_id)
             self.camera.connect()
-            self.cam_intrinsics = self.camera.intrinsics
+            self.cam_intrinsics = np.array([615.284,0,309.623,0,614.557,247.967,0,0,1]).reshape(3,3)
+
 
             # Load camera pose (from running calibrate.py), intrinsics and depth scale
             self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
@@ -327,10 +328,10 @@ class Robot(object):
 
         else:
             # Get color and depth image from ROS service
-            image = self.camera.get_image_bundle()
-            color_img = image['rgb']
-            depth_img = image['aligned_depth']
-            #color_img, depth_img = self.camera.get_data()
+            #image = self.camera.get_image_bundle()
+            #color_img = image['rgb']
+            #depth_img = image['aligned_depth']
+            color_img, depth_img = self.camera.get_data()
             # color_img = self.camera.color_data.copy()
             # depth_img = self.camera.depth_data.copy()
 
@@ -499,6 +500,7 @@ class Robot(object):
                 tcp_state_data = self.tcp_socket.recv(2048)
                 prev_actual_tool_pose = np.asarray(actual_tool_pose).copy()
                 actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
+                #print(actual_tool_pose)
                 time.sleep(0.01)
             self.tcp_socket.close()
 

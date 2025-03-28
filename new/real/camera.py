@@ -7,7 +7,7 @@ class RealSenseCamera:
                  device_id,
                  width=640,
                  height=480,
-                 fps=6):
+                 fps=30):
         self.device_id = device_id
         self.width = width
         self.height = height
@@ -29,9 +29,11 @@ class RealSenseCamera:
         # Determine intrinsics
         rgb_profile = cfg.get_stream(rs.stream.color)
         self.intrinsics = rgb_profile.as_video_stream_profile().get_intrinsics()
+        print(self.intrinsics)
 
         # Determine depth scale
         self.scale = cfg.get_device().first_depth_sensor().get_depth_scale()
+        print(self.scale)
 
     def get_image_bundle(self):
         frames = self.pipeline.wait_for_frames()
@@ -45,7 +47,7 @@ class RealSenseCamera:
         depth_image *= self.scale
         color_image = np.asanyarray(color_frame.get_data())
 
-        depth_image = np.expand_dims(depth_image, axis=2)
+        #depth_image = np.expand_dims(depth_image, axis=2)
 
         return {
             'rgb': color_image,
@@ -61,12 +63,31 @@ class RealSenseCamera:
         fig, ax = plt.subplots(1, 2, squeeze=False)
         ax[0, 0].imshow(rgb)
         m, s = np.nanmean(depth), np.nanstd(depth)
+        depth = np.expand_dims(depth, axis=2)
         ax[0, 1].imshow(depth.squeeze(axis=2), vmin=m - s, vmax=m + s, cmap=plt.cm.gray)
         ax[0, 0].set_title('rgb')
         ax[0, 1].set_title('aligned_depth')
 
         plt.show()
+    def get_data(self):
+        # Wait for a coherent pair of frames: depth and color
+        frames = self.pipeline.wait_for_frames()
 
+        # align
+        align = rs.align(align_to=rs.stream.color)
+        aligned_frames = align.process(frames)
+        aligned_depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
+        # no align
+        # depth_frame = frames.get_depth_frame()
+        # color_frame = frames.get_color_frame()
+
+        # Convert images to numpy arrays
+        depth_image = np.asanyarray(aligned_depth_frame.get_data(),dtype=np.float32)
+        depth_image *= self.scale
+        #depth_image = np.expand_dims(depth_image, axis=2)
+        color_image = np.asanyarray(color_frame.get_data())
+        return color_image, depth_image
 
 if __name__ == '__main__':
     cam = RealSenseCamera(device_id=141722072133)
