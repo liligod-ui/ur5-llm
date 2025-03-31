@@ -28,12 +28,11 @@ class RealSenseCamera:
 
         # Determine intrinsics
         rgb_profile = cfg.get_stream(rs.stream.color)
-        self.intrinsics = rgb_profile.as_video_stream_profile().get_intrinsics()
+        self.intrinsics = self.get_intrinsics(rgb_profile)
         print(self.intrinsics)
 
         # Determine depth scale
         self.scale = cfg.get_device().first_depth_sensor().get_depth_scale()
-        print(self.scale)
 
     def get_image_bundle(self):
         frames = self.pipeline.wait_for_frames()
@@ -89,6 +88,15 @@ class RealSenseCamera:
         color_image = np.asanyarray(color_frame.get_data())
         return color_image, depth_image
 
+    def get_intrinsics(self, rgb_profile):
+        raw_intrinsics = rgb_profile.as_video_stream_profile().get_intrinsics()
+        print("camera intrinsics:", raw_intrinsics)
+        # camera intrinsics form is as follows.
+        #[[fx,0,ppx],
+        # [0,fy,ppy],
+        # [0,0,1]]
+        intrinsics = np.array([raw_intrinsics.fx, 0, raw_intrinsics.ppx, 0, raw_intrinsics.fy, raw_intrinsics.ppy, 0, 0, 1]).reshape(3, 3)
+        return intrinsics
 if __name__ == '__main__':
     cam = RealSenseCamera(device_id=141722072133)
     cam.connect()

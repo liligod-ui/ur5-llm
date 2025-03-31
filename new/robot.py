@@ -14,7 +14,6 @@ class Robot(object):
 
         self.is_sim = is_sim
         self.workspace_limits = workspace_limits
-        self.instructions = []  # 存储指令队列
         self.device_id = device_id
         # If in simulation...
         if self.is_sim:
@@ -129,7 +128,7 @@ class Robot(object):
             from real.camera import RealSenseCamera
             self.camera = RealSenseCamera(self.device_id)
             self.camera.connect()
-            self.cam_intrinsics = np.array([615.284,0,309.623,0,614.557,247.967,0,0,1]).reshape(3,3)
+            self.cam_intrinsics = self.camera.intrinsics
 
 
             # Load camera pose (from running calibrate.py), intrinsics and depth scale
