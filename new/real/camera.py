@@ -46,8 +46,6 @@ class RealSenseCamera:
         depth_image *= self.scale
         color_image = np.asanyarray(color_frame.get_data())
 
-        #depth_image = np.expand_dims(depth_image, axis=2)
-
         return {
             'rgb': color_image,
             'aligned_depth': depth_image,
@@ -84,7 +82,6 @@ class RealSenseCamera:
         # Convert images to numpy arrays
         depth_image = np.asanyarray(aligned_depth_frame.get_data(),dtype=np.float32)
         depth_image *= self.scale
-        #depth_image = np.expand_dims(depth_image, axis=2)
         color_image = np.asanyarray(color_frame.get_data())
         return color_image, depth_image
 
@@ -97,6 +94,7 @@ class RealSenseCamera:
         # [0,0,1]]
         intrinsics = np.array([raw_intrinsics.fx, 0, raw_intrinsics.ppx, 0, raw_intrinsics.fy, raw_intrinsics.ppy, 0, 0, 1]).reshape(3, 3)
         return intrinsics
+
 if __name__ == '__main__':
     cam = RealSenseCamera(device_id=141722072133)
     cam.connect()

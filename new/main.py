@@ -2,11 +2,12 @@ from robot import Robot
 from PIL import Image
 from logger import Logger
 from real.camera import RealSenseCamera
+from utils.visual_utils import utils
 import argparse
 import time
 import os
 import numpy as np
-import utils
+
 
 def main(args):
     # --------------- Setup options ---------------
