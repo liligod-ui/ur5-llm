@@ -2,7 +2,10 @@ from robot import Robot
 from PIL import Image
 from logger import Logger
 from real.camera import RealSenseCamera
+
 from utils.visual_utils import utils
+from inference.grasp_generator import GraspGenerator
+
 import argparse
 import time
 import os
@@ -19,6 +22,7 @@ def main(args):
     rtc_host_ip = args.rtc_host_ip if not is_sim else None # IP and port to robot arm as real-time client (UR5)
     rtc_port = args.rtc_port if not is_sim else None
     device_id = args.device_id
+    grasp_inference_model_path = r'C:\Users\hp\Desktop\GRCNN(1)\GRCNN(1)\trained-models\cornell-randsplit-rgbd-grconvnet3-drop1-ch16\epoch_20_iou_0.97'
     if is_sim:
         workspace_limits = np.asarray([[-0.724, -0.276], [-0.224, 0.224], [-0.0001, 0.4]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     else:
@@ -57,6 +61,16 @@ def main(args):
     # Save RGB-D images and RGB-D heightmaps
     logger.save_images(1, color_img, depth_img, '0')
     logger.save_heightmaps(1, color_heightmap, valid_depth_heightmap, '0')
+
+    #Grasp inference
+    visualize = True
+    depth_img_3 = depth_img.reshape((480, 640, 1))
+    grasp_generator = GraspGenerator(grasp_inference_model_path, device_id, visualize, is_sim)
+    grasp_generator.rgb = color_img
+    grasp_generator.depth = depth_img_3
+    grasp_generator.cam_pose = robot.cam_pose
+    grasp_generator.load_model()
+    grasp_generator.generate()
     while True:
         command = input()
         angel = float(input())

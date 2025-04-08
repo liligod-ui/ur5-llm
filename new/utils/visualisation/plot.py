@@ -112,7 +112,7 @@ def plot_grasp(
     fig.canvas.draw()
 
     if save:
-        time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        time = datetime.now().strftime('%Y-%m-%d %H.%M.%S')
         fig.savefig('results/{}.png'.format(time))
 
 
